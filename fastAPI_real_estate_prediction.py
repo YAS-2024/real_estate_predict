@@ -57,8 +57,7 @@ async def make_predictions(features: InputData):
     try:
         data = features.dict() 
         df = pd.DataFrame([data])
-        df.rename(columns=mapping_dict, inplace=True)
-        print(df)
+        df.rename(columns=mapping_dict, inplace=True)        
         prediction = prediction_service(df)[0]
         return {"prediction": str(prediction)}
     except Exception as e:

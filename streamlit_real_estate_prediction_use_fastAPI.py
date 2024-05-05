@@ -5,7 +5,6 @@ import pandas as pd
 from datetime import datetime
 from requests.exceptions import JSONDecodeError
 import locale
-from real_estate_prediction_model import prediction_service,use_columns
 
 
 def custom_format_currency(num_str):
@@ -71,24 +70,34 @@ with st.form("prediction_form"):
     #transaction_date = st.text_input("取引時期")
     submit_button = st.form_submit_button("算出")
 
+# APIエンドポイントのURL
+url = "http://127.0.0.1:8000/predict/"
 
 # フォームが送信されたときの処理
 if submit_button:
     request_data = {
-        '市区町村名': [city_ward_town_name],
-        '地区名': [district_name],
-        '最寄駅：名称': [selected_station],
-        '最寄駅：距離（分）': [nearest_station_distance_min],
-        '取引価格（総額）': [0],
-        '延床面積（㎡）': [floor_area_m2],
-        '建築年': [year_built],
-        '建物の構造': [building_structure],
-        '用途': [intended_use],
-        '前面道路：種類': [front_road_type],
-        '前面道路：幅員（ｍ）': [front_road_width_m],
-        '取引時期': ["2023年第4四半期"]
+        "City_Ward_Town_Name": city_ward_town_name,
+        "District_Name": district_name,
+        "Nearest_Station_Name": selected_station,
+        "Nearest_Station_Distance_min": nearest_station_distance_min,
+        "Transaction_Price_Total": 0,
+        "Floor_Area_m2": floor_area_m2,
+        "Year_Built": year_built,
+        "Building_Structure": building_structure,
+        "Intended_Use": intended_use,
+        "Front_Road_Type": front_road_type,
+        "Front_Road_Width_m": front_road_width_m,
+        "Transaction_Date": "2023年第4四半期"
     }
-    df = pd.DataFrame(request_data)
-    prediction = str(prediction_service(df)[0])
-    formatted_number = custom_format_currency(prediction)
-    st.success(f"予測された取引価格: {formatted_number}")
+    response = requests.post(url, json=request_data)
+    if response.status_code == 200:
+        try:
+            prediction = response.json().get("prediction")
+            formatted_number = custom_format_currency(prediction)
+            st.success(f"予測された取引価格: {formatted_number}")
+        except JSONDecodeError:
+            st.error("予測の取得に失敗しました。JSON形式のエラーです。")
+            st.write(f"Raw Response: {response.text}")  # Raw レスポンスを表示
+    else:
+        st.error(f"APIエラー: {response.status_code}")
+        st.text(f"詳細: {response.text}")  # エラーの詳細を表示
