@@ -4,6 +4,29 @@ import requests
 import pandas as pd
 from datetime import datetime
 from requests.exceptions import JSONDecodeError
+import locale
+
+
+def custom_format_currency(num_str):
+    f=float(num_str)
+    amount=int(f)
+    trillion = amount // 1000000000000
+    billion = (amount // 100000000) % 10000
+    million = (amount // 10000) % 10000
+    yen = amount % 10000
+
+    formatted_amount = ""
+    if trillion > 0:
+        formatted_amount += f"{trillion}兆"
+    if billion > 0:
+        formatted_amount += f"{billion}億"
+    if million > 0:
+        formatted_amount += f"{million}万"
+    if yen > 0:
+        formatted_amount += f"{yen}円"
+    return formatted_amount
+
+
 # 仮のデータフレームを作成
 data = {
     "Nearest_Station_Name": ["飯田橋", "東京", "新宿", "渋谷", "秋葉原", "有楽町"],
@@ -13,8 +36,8 @@ data = {
 df = pd.DataFrame(data)
 
 # Streamlitアプリのタイトルと説明
-st.title("不動産取引価格予測アプリ")
-st.write("以下のフォームに情報を入力して、予測を取得してください。")
+st.title("不動産取引価格予測できたらアプリ")
+st.write("以下のフォームに情報を入力して、算出ボタンを押してください。")
 
 # 最寄駅名の入力と検索
 station_query = st.text_input("最寄駅名を検索")
@@ -45,7 +68,7 @@ with st.form("prediction_form"):
     front_road_type = st.selectbox("前面道路：種類",options=["国道", "公道", "私道","その他"])            
     front_road_width_m = st.number_input("前面道路：幅員（ｍ）", min_value=2, value=4)
     #transaction_date = st.text_input("取引時期")
-    submit_button = st.form_submit_button("予測を取得")
+    submit_button = st.form_submit_button("算出")
 
 # APIエンドポイントのURL
 url = "http://127.0.0.1:8000/predict/"
@@ -64,14 +87,14 @@ if submit_button:
         "Intended_Use": intended_use,
         "Front_Road_Type": front_road_type,
         "Front_Road_Width_m": front_road_width_m,
-        "Transaction_Date": "2024年第2四半期"
+        "Transaction_Date": "2023年第4四半期"
     }
-    print(request_data)
     response = requests.post(url, json=request_data)
     if response.status_code == 200:
         try:
             prediction = response.json().get("prediction")
-            st.success(f"予測された取引価格: {prediction}")
+            formatted_number = custom_format_currency(prediction)
+            st.success(f"予測された取引価格: {formatted_number}")
         except JSONDecodeError:
             st.error("予測の取得に失敗しました。JSON形式のエラーです。")
             st.write(f"Raw Response: {response.text}")  # Raw レスポンスを表示

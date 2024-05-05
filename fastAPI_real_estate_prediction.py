@@ -10,6 +10,28 @@ app = FastAPI()
 from real_estate_prediction_model import prediction_service,use_columns
 #['市区町村名','地区名','最寄駅：名称','最寄駅：距離（分）','取引価格（総額）','延床面積（㎡）','建築年','建物の構造','用途','前面道路：種類','前面道路：幅員（ｍ）','取引時期']
 
+import logging
+# ログの設定
+logging.basicConfig(filename='error.log', level=logging.ERROR, format='%(asctime)s - %(levelname)s - %(message)s')
+
+# ロガーの取得
+logger = logging.getLogger("uvicorn.error")
+
+mapping_dict = {
+    'City_Ward_Town_Name': '市区町村名',
+    'District_Name': '地区名',
+    'Nearest_Station_Name': '最寄駅：名称',
+    'Nearest_Station_Distance_min': '最寄駅：距離（分）',
+    'Floor_Area_m2': '延床面積（㎡）',
+    'Year_Built': '建築年',
+    'Building_Structure': '建物の構造',
+    'Intended_Use': '用途',
+    'Front_Road_Type': '前面道路：種類',
+    'Front_Road_Width_m': '前面道路：幅員（ｍ）',
+    'Transaction_Price_Total':'取引価格（総額）',
+    'Transaction_Date': '取引時期'
+}
+
 class InputData(BaseModel):
     City_Ward_Town_Name: str #'市区町村名' ex:千代田区
     District_Name: str #'地区名' ex:飯田橋
@@ -33,12 +55,16 @@ async def index():
 @app.post("/predict/")
 async def make_predictions(features: InputData):  
     try:
-        data = features.dict()
+        data = features.dict() 
         df = pd.DataFrame([data])
+        df.rename(columns=mapping_dict, inplace=True)
+        print(df)
         prediction = prediction_service(df)[0]
         return {"prediction": str(prediction)}
     except Exception as e:
-        return JSONResponse(status_code=500, content={"message": str(e)})
+        # エラーをログに記録
+        logger.error("An error occurred during prediction: %s", str(e), exc_info=True)        
+        return JSONResponse(status_code=500, content={"message": "Internal server error"})
 
 def test_main():
     #テスト用

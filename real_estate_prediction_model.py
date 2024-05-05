@@ -10,7 +10,11 @@ from bayes_opt import BayesianOptimization
 import os
 import pandas as pd
 import numpy as np
+
 use_columns = ['市区町村名','地区名','最寄駅：名称','最寄駅：距離（分）','取引価格（総額）','延床面積（㎡）','建築年','建物の構造','用途','前面道路：種類','前面道路：幅員（ｍ）','取引時期']
+# ログ設定
+import logging
+logging.basicConfig(filename='error.log', level=logging.ERROR, format='%(asctime)s - %(levelname)s - %(message)s')
 
 Front_Road_Type_mapping = {
     '市': '公',
@@ -43,6 +47,7 @@ Building_Structure_mapping={
 }
 
 def preprocess_data(data):
+    print(data)
     data['建築年'] = data['建築年'].str.replace('年', '').str.replace('戦前', '1945')
     data['建築年'] = pd.to_numeric(data['建築年'], errors='coerce').fillna(data['建築年'].median()).astype(int)
     if data['延床面積（㎡）'].dtype != 'int64':
@@ -139,7 +144,7 @@ def postprocess_predictions(predictions):
     return predictions
 
 def main():
-    #try:
+    try:
         data = pd.read_csv(os.getcwd() + '/input/' +  'Tokyo_20201_20234.csv', encoding='cp932')        
         data = data[use_columns]
         data = data[data['用途'].isin(['住宅', '共同住宅'])]
@@ -172,8 +177,9 @@ def main():
         df = pd.DataFrame({'用途': new_data['用途'],'正解値': new_data['取引価格（総額）'], '予測値': pd.Series(final_predictions).astype('int64')})
         df.to_csv(os.getcwd() + '/output/' + 'test.csv')
         print(df)
-    #except Exception as e:
-    #    print(f"An error occurred: {e}")
+    except Exception as e:
+        print(f"An error occurred: {e}")
+        logging.error(f"An error occurred: {e}")
 
     #print('end')
 def prediction_service(df):
