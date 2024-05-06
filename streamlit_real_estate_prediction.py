@@ -6,7 +6,7 @@ from datetime import datetime
 from requests.exceptions import JSONDecodeError
 import locale
 from real_estate_prediction_model import prediction_service,use_columns
-
+import os
 
 def custom_format_currency(num_str):
     f=float(num_str)
@@ -29,12 +29,8 @@ def custom_format_currency(num_str):
 
 
 # 仮のデータフレームを作成
-data = {
-    "Nearest_Station_Name": ["飯田橋", "東京", "新宿", "渋谷", "秋葉原", "有楽町"],
-    "City_Ward_Town_Name": ["千代田区", "千代田区", "新宿区", "渋谷区", "千代田区", "千代田区"],
-    "District_Name": ["飯田橋", "大手町", "西新宿", "神南", "秋葉原", "有楽町"]
-}
-df = pd.DataFrame(data)
+df=pd.read_pickle(os.getcwd() + '/st_df.pkl')
+
 
 # Streamlitアプリのタイトルと説明
 st.title("不動産取引価格予測できたらアプリ")

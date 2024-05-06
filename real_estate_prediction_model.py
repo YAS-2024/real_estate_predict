@@ -10,6 +10,7 @@ from bayes_opt import BayesianOptimization
 import os
 import pandas as pd
 import numpy as np
+import pickle
 
 use_columns = ['市区町村名','地区名','最寄駅：名称','最寄駅：距離（分）','取引価格（総額）','延床面積（㎡）','建築年','建物の構造','用途','前面道路：種類','前面道路：幅員（ｍ）','取引時期']
 # ログ設定
@@ -47,7 +48,7 @@ Building_Structure_mapping={
 }
 
 def preprocess_data(data):
-    print(data)
+    
     data['建築年'] = data['建築年'].str.replace('年', '').str.replace('戦前', '1945')
     data['建築年'] = pd.to_numeric(data['建築年'], errors='coerce').fillna(data['建築年'].median()).astype(int)
     if data['延床面積（㎡）'].dtype != 'int64':
@@ -144,12 +145,25 @@ def postprocess_predictions(predictions):
     return predictions
 
 def main():
-    try:
+    #try:
         data = pd.read_csv(os.getcwd() + '/input/' +  'Tokyo_20201_20234.csv', encoding='cp932')        
         data = data[use_columns]
         data = data[data['用途'].isin(['住宅', '共同住宅'])]
         data = preprocess_data(data)
         
+        #streamlit要のデータフレームpickleを作成
+        st_df = data[['最寄駅：名称', '市区町村名', '地区名']]
+        mapping_dict = {
+            '最寄駅：名称': 'Nearest_Station_Name',
+            '市区町村名': 'City_Ward_Town_Name',
+            '地区名': 'District_Name'
+        }
+        st_df = st_df.rename(columns=mapping_dict)
+        st_df = st_df.drop_duplicates()
+        st_df = st_df.dropna()
+        st_df.to_pickle(os.getcwd() + '/st_df.pkl')
+
+       
         # 外れ値の除去（3シグマ法）
         price_mean = data['取引価格（総額）'].mean()
         price_std = data['取引価格（総額）'].std()
@@ -165,6 +179,9 @@ def main():
         mse = mean_squared_error(y_test, y_pred)
         print(f'平均二乗誤差: {mse}')
         
+        
+        
+        #検証用
         new_data = pd.read_csv(os.getcwd() + '/input/' + 'new_data.csv', encoding='cp932')
         #new_data = pd.read_csv(os.getcwd() + '/input/' + 'for_API_test.csv', encoding='cp932')
         new_data=new_data[use_columns]
@@ -176,8 +193,8 @@ def main():
         
         df = pd.DataFrame({'用途': new_data['用途'],'正解値': new_data['取引価格（総額）'], '予測値': pd.Series(final_predictions).astype('int64')})
         df.to_csv(os.getcwd() + '/output/' + 'test.csv')
-        print(df)
-    except Exception as e:
+        
+    #except Exception as e:
         print(f"An error occurred: {e}")
         logging.error(f"An error occurred: {e}")
 
@@ -189,6 +206,7 @@ def prediction_service(df):
     #対数から元に戻す      
     final_predictions = postprocess_predictions(raw_predictions)  # 逆変換とポストプロセッシング
     return final_predictions
+
 
 if __name__ == '__main__':
     main()
